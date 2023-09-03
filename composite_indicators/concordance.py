@@ -15,7 +15,7 @@ class BaseConcordance(TransformerXYMixin):
         """
         self.enable_projection = enable_projection
 
-    def fit_transform(self, X: np.ndarray, y: np.ndarray, w: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _fit_transform(self, X: np.ndarray, y: np.ndarray, w: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Fit the model with X, y and w and apply a concordace to y.
 
         Args:
@@ -29,10 +29,11 @@ class BaseConcordance(TransformerXYMixin):
                 concordant target values (n_samples,)
         """
         if self.enable_projection:
-            y_new = self._transform_y(X, self.project_y(X, y), w)
+            y_in = self.project_y(X, y[:, None])
         else:
-            y_new = self._transform_y(X, y, w)
-        return X, y_new
+            y_in = y[:, None]
+        y_new = self._transform_y(X, y_in, w[:, None])
+        return X, y_new.ravel()
 
     @staticmethod
     def project_y(X: np.ndarray, y: np.ndarray) -> np.ndarray:

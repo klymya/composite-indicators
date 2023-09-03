@@ -64,7 +64,7 @@ class BaseAggregator(TransformerXYMixin):
 
     @staticmethod
     def _add_regularization(X: np.ndarray, y: np.ndarray, alpha: float) -> np.ndarray:
-        return np.hstack([X, alpha * y]) if alpha else X
+        return np.hstack([X, alpha * y[:, None]]) if alpha else X
 
     def _run_global_model(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
         if self.global_model:
@@ -76,30 +76,30 @@ class BaseAggregator(TransformerXYMixin):
 
     def _run_local_model(self, X, labels):
         if self.local_model:
+            labels_local = np.zeros_like(labels)
             X_in = self._add_regularization(X, labels, self.local_alpha)
-            tmp_labels = []
             for idx, ulabel in enumerate(np.unique(labels)):
-                tmp_labels.append(self.local_model.fit_predict(X_in[labels.flatten() == ulabel]) + idx * 100)
+                labels_local[labels == ulabel] = \
+                    self.local_model.fit_predict(X_in[labels == ulabel]) + idx * 100
 
-            labels = tmp_labels
+            labels = labels_local
 
-        return np.vstack(labels)
+        return labels
 
     def _run_aggregation(self, X: np.ndarray, y: np.ndarray, labels: np.ndarray) -> np.ndarray:
         X_agg = []
         y_agg = []
         for ulabel in np.unique(labels):
-            X_agg.append(self.agg(X[labels.flatten() == ulabel]))
-            y_cl = y[labels.flatten() == ulabel]
+            X_agg.append(self.agg(X[labels == ulabel]))
+            y_cl = y[labels == ulabel]
             y_tmp = y_cl[0] if self.global_model is None else self.agg(y_cl)
             y_agg.append(y_tmp)
 
         X_agg = np.vstack(X_agg)
-        y_agg = np.vstack(y_agg)
 
-        return X_agg, y_agg
+        return X_agg, np.array(y_agg)
 
-    def fit_transform(self, X: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _fit_transform(self, X: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Fit the model with X, y and apply an aggreagation to the data.
 
         Args:
