@@ -3,6 +3,7 @@ from typing import Tuple
 
 import numpy as np
 from sklearn.base import BaseEstimator
+from sklearn.metrics.pairwise import rbf_kernel
 
 
 class TransformerXYMixin(BaseEstimator, ABC):
@@ -66,3 +67,40 @@ class TransformerXYMixin(BaseEstimator, ABC):
 
     def _more_tags(self):
         return {"requires_y": True}
+
+
+class KernelWrapper(BaseEstimator):
+    """ Make kernel esstimator from a linear.
+    Supports only RBF kernel and esstimators with regularization parameter `alpha`.
+
+    """
+    def __init__(self, model_type: type[BaseEstimator], gamma: float = 1, alpha: float = 1) -> None:
+        """Init kernel wrapper.
+
+        Args:
+            model_type (type[BaseEstimator]): linear esstimator class
+            gamma (float, optional): kernel parameter. Defaults to 1.
+            alpha (float, optional): regularization parameter. Defaults to 1.
+        """
+        self.gamma = gamma
+        self.model_type = model_type
+        self.model = None
+        self.X = None
+        self.alpha = alpha
+
+    def get_kernel_matrix(self, x: np.ndarray) -> np.ndarray:
+        assert self.X is not None, "Please, fit the model first."
+        return rbf_kernel(x, self.X, gamma=self.gamma)
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> BaseEstimator:
+        self.model = self.model_type(alpha=self.alpha)
+
+        self.X = X
+        self.model.fit(self.get_kernel_matrix(X), y)
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return self.model.predict(self.get_kernel_matrix(X))
+
+    def score(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
+        return self.model.score(self.get_kernel_matrix(X), y)

@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from composite_indicators.concordance import AlphaConcordance, BaseConcordance, GammaSquaredConcordance
+from composite_indicators.concordance import (
+    AlphaConcordance,
+    BaseConcordance,
+    GammaSquaredConcordance,
+    ConcordanceScaler,
+)
 
 
 @pytest.fixture
@@ -19,7 +24,7 @@ def get_data():
 
 
 def test_alpha_concordance_w(get_data):
-    X, y, w_gt, w_0 = get_data
+    X, y, _, w_0 = get_data
 
     _, y_alpha = AlphaConcordance(0).fit_transform(X, y, w=w_0)
     w_alpha = np.linalg.pinv(X) @ y_alpha
@@ -28,7 +33,7 @@ def test_alpha_concordance_w(get_data):
 
 
 def test_alpha_concordance_y(get_data):
-    X, y, w_gt, w_0 = get_data
+    X, y, _, w_0 = get_data
 
     _, y_alpha = AlphaConcordance(1).fit_transform(X, y, w=w_0)
     assert y == pytest.approx(y_alpha, 0.1)
@@ -51,9 +56,17 @@ def test_gamma_squared_concodance_y(get_data):
 
 
 def test_gamma_squared_concodance_w(get_data):
-    X, y, w_gt, w_0 = get_data
+    X, y, _, w_0 = get_data
 
     _, y_gamma = GammaSquaredConcordance(1e9).fit_transform(X, y, w=w_0)
     w_gamma = np.linalg.pinv(X) @ y_gamma
 
     assert w_0 == pytest.approx(w_gamma, 0.1)
+
+
+def test_scaler():
+    X = np.stack([np.arange(5), np.arange(5), np.arange(5)]).T
+    opt_vals = np.array([1, 0, 0.5])
+    X_scaled = ConcordanceScaler(opt_vals).fit_transform(X)
+    assert pytest.approx(X_scaled, 0.1) == \
+        np.stack([[0, 0.25, 0.5, 0.75, 1], [1, 0.75, 0.5, 0.25, 0], [0.5, 0.75, 1, 0.75, 0.5]]).T
