@@ -9,15 +9,19 @@ from composite_indicators.base import TransformerXYMixin
 
 
 def _get_centroid(x: np.ndarray) -> np.ndarray:
-    return np.mean(x, axis=0)
+    return np.nanmean(x, axis=0)
 
 
 def _get_median(x: np.ndarray) -> np.ndarray:
-    return np.median(x, axis=0)
+    return np.nanmedian(x, axis=0)
 
 
 def _get_medoid(x: np.ndarray) -> np.ndarray:
-    return x[np.argmin(distance_matrix(x, x).sum(axis=0))]
+    if x.ndim < 2:
+        x_in = x[None, :]
+    else:
+        x_in = x
+    return x[np.argmin(distance_matrix(x_in, x_in).sum(axis=0))]
 
 
 class Aggregation(Enum):

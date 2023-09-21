@@ -1,11 +1,11 @@
 from typing import Tuple
 import numpy as np
-from sklearn.base import TransformerMixin
+from sklearn.base import TransformerMixin, BaseEstimator
 
 from composite_indicators.base import TransformerXYMixin
 
 
-class ConcordanceScaler(TransformerMixin):
+class ConcordanceScaler(BaseEstimator, TransformerMixin):
     def __init__(self, optimal_values: np.ndarray) -> None:
         """Initialize concordance scaler.
 
